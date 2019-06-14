@@ -1,0 +1,25 @@
+[alias]
+	init-commit = "!f() { git init . && { [ $# -eq 0 ] && git add . || git add $*; } && git commit -m 'Initial commit'; }; f"
+	graph = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=iso
+	graph-simple = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=iso
+	add-deleted = !"git ls-files -d | cut -f 2 | sort -u | sed -E \"s/^(.*)$/$(git rev-parse --git-dir | sed -E 's/([\\/\\. ])/\\\\\\1/g')\\/\\.\\.\\/\\1/g\" | xargs git add"
+	edit-excludes = "!f() { local editor=$(git config core.editor || echo 'vim') && $editor \"$(git rev-parse --git-dir)/info/exclude\"; }; f"
+	edit-conflicts = "!f() { local editor=$(git config core.editor || echo 'vim') && $editor $(git diff --name-only --diff-filter=U); }; f"
+	ls-binary = !"f() { git ls-files --eol \"$@\" | grep -v \"attr/-text\" | grep \"[iw]/-text\"; }; f"
+	ls-conflicts = !git ls-files -u | cut -f 2 | sort -u
+	ls-deleted = !git ls-files -d | cut -f 2 | sort -u
+	ls-excludes = ls-files --others --exclude-from=.git/info/exclude
+	ls-assume-unchanged = !git ls-files -v | grep -E '^h'
+	ls-skip-worktree = !git ls-files -v | grep -E '^S'
+	rm-assume-unchanged = !git ls-files -v | grep -E '^h' | cut -d ' ' -f 2 | xargs rm -f
+	rm-skip-worktree = !git ls-files -v | grep -E '^S' | cut -d ' ' -f 2 | xargs rm -f
+	wc = !git grep --cached -Il '' | xargs wc
+	show-reposize = !du -hs $(git rev-parse --git-dir)
+	hub-clone = "!f() { [ $# -eq 2 ] && git clone \"https://github.com/$1/$2.git\" || { echo 1>&2 'Number of argument must be two' && echo '[USAGE]' && echo '  $ git hub-clone USENAME REPOSITORY_NAME'; }; }; f"
+[core]
+	autoCRLF = false
+	excludesfile = ~/.gitignore_global
+[diff "nkf_to_utf8"]
+	textconv = nkf -w
+[diff "iconv_utf16_to_utf8"]
+	textconv = iconv -f utf-16 -t utf-8
