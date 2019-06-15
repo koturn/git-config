@@ -16,6 +16,9 @@
 	wc = !git grep --cached -Il '' | xargs wc
 	show-reposize = !du -hs $(git rev-parse --git-dir)
 	hub-clone = "!f() { [ $# -eq 2 ] && git clone \"https://github.com/$1/$2.git\" || { echo 1>&2 'Number of argument must be two' && echo '[USAGE]' && echo '  $ git hub-clone USENAME REPOSITORY_NAME'; }; }; f"
+	export = "!f() { [ $# -eq 1 ] && git checkout-index -a -f --prefix=${1%/}/ || { echo 1>&2 'Number of argument must be one' && echo '[USAGE]' && echo '  $ git exprt DIRECTORY'; }; }; f"
+	nkf-guess = "!f() { git ls-files | xargs nkf --guess; }; f"
+	find-big = "!f() { gitdir=$(git rev-parse --git-dir) && { [ -f $gitdir/objects/pack/pack-*.idx ] && { IFS=$'\\n'; output='size(kB),pack,SHA,location'; for y in $(git verify-pack -v $gitdir/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head); do output=\"${output}\\n$(($(echo $y | cut -f 5 -d ' ') / 1024)),$(($(echo $y | cut -f 6 -d ' ') / 1024)),$(git rev-list --all --objects | grep $(echo $y | cut -f 1 -d ' '))\"; done; echo -e $output | column -t -s ', '; } || echo 'No packed files'; }; }; f"
 [core]
 	autoCRLF = false
 	excludesfile = ~/.gitignore_global
