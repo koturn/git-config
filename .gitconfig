@@ -14,9 +14,11 @@
 	rm-assume-unchanged = !git ls-files -v | grep -E '^h' | cut -d ' ' -f 2 | xargs rm -f
 	rm-skip-worktree = !git ls-files -v | grep -E '^S' | cut -d ' ' -f 2 | xargs rm -f
 	wc = !git grep --cached -Il '' | xargs wc
-	show-reposize = !du -hs $(git rev-parse --git-dir)
+	reposize = !du -hs $(git rev-parse --git-dir)
 	hub-clone = "!f() { [ $# -eq 2 ] && git clone \"https://github.com/$1/$2.git\" || { echo 1>&2 'Number of argument must be two' && echo '[USAGE]' && echo '  $ git hub-clone USENAME REPOSITORY_NAME'; }; }; f"
 	export = "!f() { [ $# -eq 1 ] && git checkout-index -a -f --prefix=$(pwd)/${1%/}/ || { echo 1>&2 'Number of argument must be one' && echo '[USAGE]' && echo '  $ git exprt DIRECTORY'; }; }; f"
+	export-changed = "!f() { [ $# -eq 3 ] && git checkout-index -f --prefix=$(pwd)/${1%/}/ $(git diff --name-only --diff-filter=d $2 $3) || { echo >&2 'Number of argument must be three' && echo '[USAGE]' && echo '  $ git exprt-changed DIRECTORY COMMIT1 COMMIT2'; }; }; f"
+	archive-change = "!f() { [ $# -eq 3 ] && git archive $3 -o \"$1\" $(git diff --name-only --diff-filter=d $2 $3) || { echo >&2 'Number of argument must be three' && echo '[USAGE]' && echo '  $ git archive-changed OUTPUT_FILENAME COMMIT1 COMMIT2'; }; }; f"
 	nkf-guess = "!f() { git ls-files | xargs nkf --guess; }; f"
 	findbig = "!f() { gitdir=$(git rev-parse --git-dir) && { [ -f $gitdir/objects/pack/pack-*.idx ] && { IFS=$'\\n'; output='size(kB),pack,SHA,location'; for y in $(git verify-pack -v $gitdir/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head); do output=\"${output}\\n$(($(echo $y | cut -f 5 -d ' ') / 1024)),$(($(echo $y | cut -f 6 -d ' ') / 1024)),$(git rev-list --all --objects | grep $(echo $y | cut -f 1 -d ' '))\"; done; echo -e $output | column -t -s ', '; } || echo 'No packed files'; }; }; f"
 [core]
