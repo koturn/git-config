@@ -3,8 +3,8 @@
 	graph = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=iso
 	graph-simple = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=iso
 	add-deleted = !"git ls-files -d | cut -f 2 | sort -u | sed -E \"s/^(.*)$/$(git rev-parse --git-dir | sed -E 's/([\\/\\. ])/\\\\\\1/g')\\/\\.\\.\\/\\1/g\" | xargs git add"
-	edit-excludes = "!f() { local editor=$(git config core.editor || echo 'vim') && $editor \"$(git rev-parse --git-dir)/info/exclude\"; }; f"
-	edit-conflicts = "!f() { local editor=$(git config core.editor || echo 'vim') && $editor $(git diff --name-only --diff-filter=U); }; f"
+	edit-excludes = "!f() { local editor=$(git config core.editor || echo 'vim') && ${editor} \"$(git rev-parse --git-dir)/info/exclude\"; }; f"
+	edit-conflicts = "!f() { local conflict_files=$(git diff --name-only --diff-filter=U); [ -z \"${conflict_files}\" ] && echo 'No conflict files' || { local editor=$(git config core.editor || echo 'vim') && $editor $(git diff --name-only --diff-filter=U) -c '/^\\%(<\\{>7\\}\\|>\\{7\\}\\|=\\{7\\}\\)$'; }; }; f"
 	ls-binary = !"f() { git ls-files --eol \"$@\" | grep -v \"attr/-text\" | grep \"[iw]/-text\"; }; f"
 	ls-conflicts = !git ls-files -u | cut -f 2 | sort -u
 	ls-deleted = !git ls-files -d | cut -f 2 | sort -u
@@ -21,6 +21,9 @@
 	archive-change = "!f() { [ $# -eq 3 ] && git archive $3 -o \"$1\" $(git diff --name-only --diff-filter=d $2 $3) || { echo >&2 'Number of argument must be three' && echo '[USAGE]' && echo '  $ git archive-changed OUTPUT_FILENAME COMMIT1 COMMIT2'; }; }; f"
 	nkf-guess = "!f() { git ls-files | xargs nkf --guess; }; f"
 	findbig = "!f() { gitdir=$(git rev-parse --git-dir) && { [ -f $gitdir/objects/pack/pack-*.idx ] && { IFS=$'\\n'; output='size(kB),pack,SHA,location'; for y in $(git verify-pack -v $gitdir/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head); do output=\"${output}\\n$(($(echo $y | cut -f 5 -d ' ') / 1024)),$(($(echo $y | cut -f 6 -d ' ') / 1024)),$(git rev-list --all --objects | grep $(echo $y | cut -f 1 -d ' '))\"; done; echo -e $output | column -t -s ', '; } || echo 'No packed files'; }; }; f"
+	count-day = "!f() { git log --date=short --pretty=format:'%cd %an' | uniq -c; }; f"
+	clean-repo = "!f() { git reflog expire --expire=now --all && git gc --aggressive --prune=now; }; f"
+	retouch = "!f() { for file in $(git ls-files ${dir}); do touch -t \"$(git log -1 --date=format-local:'%Y%m%d%H%M.%S' --pretty=format:'%ad' ${file})\" \"${file}\"; done; }; f"
 [core]
 	autoCRLF = false
 	excludesfile = ~/.gitignore_global
