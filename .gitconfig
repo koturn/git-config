@@ -1,32 +1,35 @@
 [alias]
-	init-commit = "!f() { git init . && { [ $# -eq 0 ] && git add . || git add $*; } && git commit -m 'Initial commit'; }; f"
+	init-commit = "!f() { git init . && git add ${*:-.} && git commit -m 'Initial commit'; }; f"
 	graph = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=iso
 	graph-simple = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=iso
-	add-deleted = !"git ls-files -d | cut -f 2 | sort -u | sed -E \"s/^(.*)$/$(git rev-parse --git-dir | sed -E 's/([\\/\\. ])/\\\\\\1/g')\\/\\.\\.\\/\\1/g\" | xargs git add"
-	edit-excludes = "!f() { local editor=$(git config core.editor || echo 'vim') && ${editor} \"$(git rev-parse --git-dir)/info/exclude\"; }; f"
-	edit-conflicts = "!f() { local conflict_files=$(git diff --name-only --diff-filter=U); [ -z \"${conflict_files}\" ] && echo 'No conflict files' || { local editor=$(git config core.editor || echo 'vim') && $editor $(git diff --name-only --diff-filter=U) -c '/^\\%(<\\{>7\\}\\|>\\{7\\}\\|=\\{7\\}\\)$'; }; }; f"
-	ls-binary = !"f() { git ls-files --eol \"$@\" | grep -v \"attr/-text\" | grep \"[iw]/-text\"; }; f"
-	ls-conflicts = !git ls-files -u | cut -f 2 | sort -u
-	ls-deleted = !git ls-files -d | cut -f 2 | sort -u
+	add-deleted = "!f() { cd \"${GIT_PREFIX:-.}\" && git ls-files -d \"${1:-.}\" | cut -f 2 | sort -u | xargs git add; }; f"
+	edit-excludes = "!f() { local editor=$(git config core.editor || echo 'vim') && $editor \"$(git rev-parse --git-dir)/info/exclude\"; }; f"
+	edit-conflicts = "!f() { local conflict_files=$(git diff --name-only --diff-filter=U); [ -z \"${conflict_files}\" ] && echo 'No conflict files' || { local editor=$(git config core.editor || echo 'vim') && $editor $(git diff --name-only --diff-filter=U) -c '/^\\%(<\\{7\\}\\|>\\{7\\}\\|=\\{7\\}\\)$'; }; }; f"
+	ls-binary = "!f() { git -C \"${GIT_PREFIX:-.}\" ls-files --eol \"${1:-.}\" | grep -v 'attr/-text' | grep '[iw]/-text'; }; f"
+	ls-conflicts = "!f() { git -C \"${GIT_PREFIX:-.}\" ls-files -u \"${1:-.}\" | cut -f 2 | sort -u; }; f"
+	ls-deleted = "!f() { git -C \"${GIT_PREFIX:-.}\" ls-files -d \"${1:-.}\" | cut -f 2 | sort -u; }; f"
 	ls-excludes = ls-files --others --exclude-from=.git/info/exclude
-	ls-assume-unchanged = !git ls-files -v | grep -E '^h'
-	ls-skip-worktree = !git ls-files -v | grep -E '^S'
-	rm-assume-unchanged = !git ls-files -v | grep -E '^h' | cut -d ' ' -f 2 | xargs rm -f
-	rm-skip-worktree = !git ls-files -v | grep -E '^S' | cut -d ' ' -f 2 | xargs rm -f
-	wc = !git grep --cached -Il '' | xargs wc
+	ls-assume-unchanged = "!f() { git -C \"${GIT_PREFIX:-.}\" ls-files -v \"${1:-.}\" | grep -E '^h'; }; f"
+	ls-skip-worktree = "!f() { git -C \"${GIT_PREFIX:-.}\" ls-files -v \"${1:-.}\" | grep -E '^S' }; f"
+	rm-assume-unchanged = "!f() { cd \"${GIT_PREFIX:-.}\" && git ls-files -v \"${1:-.}\" | grep -E '^h' | cut -d ' ' -f 2 | xargs rm -f; }; f"
+	rm-skip-worktree = "!f() { cd \"${GIT_PREFIX:-.}\" && git ls-files -v \"${1:-.}\" | grep -E '^S' | cut -d ' ' -f 2 | xargs rm -f; }; f"
+	wc = "!f() { cd \"${GIT_PREFIX:-.}\" && git grep --cached -Il '' \"${1:-.}\" | xargs wc; }; f"
 	reposize = !du -hs $(git rev-parse --git-dir)
 	hub-clone = "!f() { [ $# -eq 2 ] && git clone \"https://github.com/$1/$2.git\" || { echo 1>&2 'Number of argument must be two' && echo '[USAGE]' && echo '  $ git hub-clone USENAME REPOSITORY_NAME'; }; }; f"
 	export = "!f() { [ $# -eq 1 ] && git checkout-index -a -f --prefix=$(pwd)/${1%/}/ || { echo 1>&2 'Number of argument must be one' && echo '[USAGE]' && echo '  $ git exprt DIRECTORY'; }; }; f"
 	export-changed = "!f() { [ $# -eq 3 ] && git checkout-index -f --prefix=$(pwd)/${1%/}/ $(git diff --name-only --diff-filter=d $2 $3) || { echo >&2 'Number of argument must be three' && echo '[USAGE]' && echo '  $ git exprt-changed DIRECTORY COMMIT1 COMMIT2'; }; }; f"
 	archive-change = "!f() { [ $# -eq 3 ] && git archive $3 -o \"$1\" $(git diff --name-only --diff-filter=d $2 $3) || { echo >&2 'Number of argument must be three' && echo '[USAGE]' && echo '  $ git archive-changed OUTPUT_FILENAME COMMIT1 COMMIT2'; }; }; f"
-	nkf-guess = "!f() { git ls-files | xargs nkf --guess; }; f"
+	nkf-guess = "!f() { cd ${GIT_PREFIX:-.} && git ls-files \"${1:-.}\" | xargs nkf --guess; }; f"
 	findbig = "!f() { gitdir=$(git rev-parse --git-dir) && { [ -f $gitdir/objects/pack/pack-*.idx ] && { IFS=$'\\n'; output='size(kB),pack,SHA,location'; for y in $(git verify-pack -v $gitdir/objects/pack/pack-*.idx | grep -v chain | sort -k3nr | head); do output=\"${output}\\n$(($(echo $y | cut -f 5 -d ' ') / 1024)),$(($(echo $y | cut -f 6 -d ' ') / 1024)),$(git rev-list --all --objects | grep $(echo $y | cut -f 1 -d ' '))\"; done; echo -e $output | column -t -s ', '; } || echo 'No packed files'; }; }; f"
 	count-day = "!f() { git log --date=short --pretty=format:'%cd %an' | uniq -c; }; f"
 	clean-repo = "!f() { git reflog expire --expire=now --all && git gc --aggressive --prune=now; }; f"
-	retouch = "!f() { for file in $(git ls-files ${dir}); do touch -t \"$(git log -1 --date=format-local:'%Y%m%d%H%M.%S' --pretty=format:'%ad' ${file})\" \"${file}\"; done; }; f"
+	retouch = "!f() { cd ${GIT_PREFIX:-.} && for file in $(git ls-files \"${1:-.}\"); do { local ts=\"$(git log -1 --date=format-local:'%Y%m%d%H%M.%S' --pretty=format:'%ad' ${file})\" && echo \"${file}: ${ts}\" && touch -t \"${ts}\" \"${file}\"; }; done; }; f"
+	retouch-p = "!f() { cd ${GIT_PREFIX:-.} && git ls-files \"${1:-.}\" | xargs -n 1 -P $(grep 'processor' /proc/cpuinfo | wc -l) -i{} sh -c \"ts=\\$(git log -1 --date=format-local:'%Y%m%d%H%M.%S' --pretty=format:'%ad' {}) && echo {}: \\${ts} && touch -t \\${ts} \\{}\"; }; f"
 [core]
 	autoCRLF = false
 	excludesfile = ~/.gitignore_global
+	pager = less -x1,5,9,13,17
+	quotepath = false
 [diff "nkf_to_utf8"]
 	textconv = nkf -w
 [diff "iconv_utf16_to_utf8"]
